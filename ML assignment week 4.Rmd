@@ -1,0 +1,69 @@
+---
+title: "ML assignment week 4"
+author: "Siti Soraya"
+date: "10/28/2019"
+output: html_document
+---
+Loading the datasets
+```{r}
+train <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+test  <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+training_dat2 <- read.csv(url(train))
+testing_dat2 <- read.csv(url(test))
+dim(training_dat2)
+dim(testing_dat2)
+```
+Cleaning the data
+Removing variables that are having nearly zero variance
+```{r}
+non_zero_variance <- nearZeroVar(training_dat2)
+training_dat2 <- training_dat2[,-non_zero_variance]
+testing_dat2 <- testing_dat2[,-non_zero_variance]
+dim(training_dat2)
+dim(testing_dat2)
+```
+Removing variables that are having NA values, threshold is 95%
+```{r}
+na_val <- sapply(training_dat2, function(x) mean(is.na(x))) > 0.95
+training_dat2 <- training_dat2[,na_val == FALSE]
+testing_dat2 <- testing_dat2[,na_val == FALSE]
+dim(training_dat2)
+dim(testing_dat2)
+```
+Removing non-numeric variables which will not contribute into model
+```{r}
+training_dat2 <- training_dat2[,8:59]
+testing_dat2 <- testing_dat2[,8:59]
+dim(training_dat2)
+dim(testing_dat2)
+```
+Partitioning the data
+```{r}
+partition <- createDataPartition(training_dat2$classe, p=0.6, list=FALSE)
+training5 <- training_dat2[partition,]
+testing5 <- training_dat2[-partition,]
+dim(training5)
+dim(testing5)
+```
+Decision tree model
+```{r}
+DT_model_fit <- train(classe ~ ., data = training5, method="rpart")
+DT_prediction <- predict(DT_model_fit, testing5)
+DT_pred_confusion_matrix <- confusionMatrix(DT_prediction, testing5$classe)
+DT_pred_confusion_matrix
+rpart.plot(DT_model_fit$finalModel, roundint=FALSE)
+```
+Random forest model
+```{r}
+RF_model_fit <- train(classe ~ ., data = training5, method = "rf", ntree = 100)
+RF_prediction <- predict(RF_model_fit, testing5)
+RF_pred_confusion_matrix <- confusionMatrix(RF_prediction, testing5$classe)
+RF_pred_confusion_matrix
+plot(RF_pred_confusion_matrix$table, col = RF_pred_confusion_matrix$byClass, 
+    main = paste("Random Forest - Accuracy Level =",                     round(RF_pred_confusion_matrix$overall['Accuracy'], 4)))
+```
+Final prediction
+```{r}
+Final_RF_prediction <- predict(RF_model_fit, testing_dat2)
+Final_RF_prediction
+```
